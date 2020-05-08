@@ -357,6 +357,7 @@ def get_score_geo(img, vertices, labels, scale, length):
         rotated_x, rotated_y = rotate_all_pixels(rotate_mat, vertice[0], vertice[1], length)
     
         # 计算d，负数表示在文本框外侧，置零
+        '''
         d1 = rotated_y - y_min
         d1[d1<0] = 0
         d2 = y_max - rotated_y
@@ -364,6 +365,15 @@ def get_score_geo(img, vertices, labels, scale, length):
         d3 = rotated_x - x_min
         d3[d3<0] = 0
         d4 = x_max - rotated_x
+        d4[d4<0] = 0
+        '''
+        d1 = rotated_y - y_min
+        d1[d1<0] = 0
+        d2 = x_max - rotated_x
+        d2[d2<0] = 0
+        d3 = y_max - rotated_y
+        d3[d3<0] = 0
+        d4 = rotated_x - x_min
         d4[d4<0] = 0
         # 每隔4个像素采样(index_y, index_x)，乘以文本框缩小0.3后的掩码
         geo_map[:,:,0] += d1[index_y, index_x] * temp_mask

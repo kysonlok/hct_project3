@@ -1,5 +1,6 @@
 #coding:utf-8
 import torch
+from tqdm import tqdm
 from torch.utils import data
 from torch import nn
 from torch.optim import lr_scheduler
@@ -9,7 +10,6 @@ from loss import Loss
 import os
 import time
 import numpy as np
-
 
 def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, interval):
         #数据处理 
@@ -45,11 +45,12 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 		epoch_time = time.time()
 		# import pdb
 		# pdb.set_trace()
-		for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_loader):
+		train_process = tqdm(train_loader)
+		for i, (img, gt_score, gt_geo, ignored_map) in enumerate(train_process):
 			start_time = time.time()
 			#import pdb
 			# pdb.set_trace()
-			print("start_time=%s"%(start_time))
+			# print("start_time=%s"%(start_time))
 			img, gt_score, gt_geo, ignored_map = img.to(device), gt_score.to(device), gt_geo.to(device), ignored_map.to(device)
 			
 			# 使用模型
@@ -66,13 +67,19 @@ def train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers,
 			#权重更新
 			optimizer.step()
 
+			train_process.set_description_str("epoch:{}".format(epoch+1))
+			train_process.set_postfix_str("batch_loss:{:.4f}".format(loss.item()))
+			'''
 			print('Epoch is [{}/{}], mini-batch is [{}/{}], time consumption is {:.8f}, batch_loss is {:.8f}'.format(\
               epoch+1, epoch_iter, i+1, int(file_num/batch_size), time.time()-start_time, loss.item()))
+			'''
 		
 		scheduler.step()
-		print('epoch_loss is {:.8f}, epoch_time is {:.8f}'.format(epoch_loss/int(file_num/batch_size), time.time()-epoch_time))
-		print(time.asctime(time.localtime(time.time())))
-		print('='*50)
+		with open('train.csv', 'a') as f:
+			f.write('epoch[{}]: epoch_loss is {:.8f}, epoch_time is {:.8f}\n'.format(epoch+1, epoch_loss/int(file_num/batch_size), time.time()-epoch_time))
+		# print('epoch_loss is {:.8f}, epoch_time is {:.8f}'.format(epoch_loss/int(file_num/batch_size), time.time()-epoch_time))
+		# print(time.asctime(time.localtime(time.time())))
+		# print('='*50)
 		if (epoch + 1) % interval == 0:
 			state_dict = model.module.state_dict() if data_parallel else model.state_dict()
 			torch.save(state_dict, os.path.join(pths_path, 'model_epoch_{}.pth'.format(epoch+1)))
@@ -83,10 +90,10 @@ if __name__ == '__main__':
 	train_gt_path  = os.path.abspath('./ICDAR_2015/train_gt')
 	pths_path      = './pths'
 	#batch_size     = 24 
-	batch_size     = 1 
+	batch_size     = 16
 	lr             = 1e-3
 	#num_workers    = 4
-	num_workers    = 0
+	num_workers    = 8
 	epoch_iter     = 600
 	save_interval  = 5
 	train(train_img_path, train_gt_path, pths_path, batch_size, lr, num_workers, epoch_iter, save_interval)
