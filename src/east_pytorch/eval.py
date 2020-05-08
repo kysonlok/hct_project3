@@ -1,11 +1,22 @@
 import os
+import argparse
 import numpy as np
 import torch
+import shutil
 from torchvision import transforms
 from PIL import Image, ImageDraw
 from model import EAST
 from dataset import get_rotate_mat
 from shapely.geometry import Polygon
+
+parser = argparse.ArgumentParser(description='EAST')
+parser.add_argument('-m', '--trained_model', default='pths/east_fin.pth',
+                    type=str, help='Trained state_dict file path to open')
+parser.add_argument('-i', '--img_path', default='ICDAR_2015/test_img',
+					type=str, help='Path for test image')
+parser.add_argument('-s', '--show_image', action="store_true", default=False, help='show detection results')
+parser.add_argument('--save_folder', default='eval/', type=str, help='Dir to save results')
+args = parser.parse_args()
 
 #图片读入并缩放
 def resize_img(img):
@@ -252,23 +263,28 @@ def detect_dataset(model, device, test_img_path, submit_path):
 				f.writelines(seq)
 
 def main():
-    img_path = os.path.abspath('./ICDAR_2015/test_img/img_2.jpg')
-    model_path = './pths/model_epoch_300_txy.pth'
-    res_img = 'res.bmp'
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    model = EAST()
-    model = model.eval()
-    model = model.to(device)
-    model.load_state_dict(torch.load(model_path))
+	model = EAST()
+	model = model.eval()
+	model = model.to(device)
+	model.load_state_dict(torch.load(args.trained_model))
 
-    img = Image.open(img_path)
+	if os.path.exists(args.save_folder):
+		shutil.rmtree(args.save_folder)
+	
+	os.mkdir(args.save_folder)
 
-    boxes = detect(img, model, device)
-	#绘制boxes到图片上
-    plot_img = plot_boxes(img, boxes)	
-	#保存图片到./res.bmp
-    plot_img.save(res_img)
+	for img_file in os.listdir(args.img_path):
+		img = Image.open(os.path.join(args.img_path, img_file))
+
+		boxes = detect(img, model, device)
+		#绘制boxes到图片上
+		plot_img = plot_boxes(img, boxes)
+		plot_img.save(os.path.join(args.save_folder, img_file))
+
+		if args.show_image:
+			plot_img.show()
 
 if __name__ == "__main__":
     main()
