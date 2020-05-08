@@ -1,4 +1,5 @@
 import os
+from tqdm import tqdm
 import argparse
 import numpy as np
 import torch
@@ -275,7 +276,10 @@ def main():
 	
 	os.mkdir(args.save_folder)
 
-	for img_file in os.listdir(args.img_path):
+	test_process = tqdm(os.listdir(args.img_path), ascii=True)
+	for img_file in test_process:
+		test_process.set_description("Processing")
+
 		img = Image.open(os.path.join(args.img_path, img_file))
 
 		boxes = detect(img, model, device)
