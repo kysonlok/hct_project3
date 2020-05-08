@@ -63,6 +63,6 @@ class Loss(nn.Module):
 
 		geo_loss = self.weight_angle * angle_loss + iou_loss
 
-		print('classify loss is {:.8f}, angle loss is {:.8f}, iou loss is {:.8f}'.format(classify_loss, angle_loss, iou_loss))
+		# print('classify loss is {:.8f}, angle loss is {:.8f}, iou loss is {:.8f}'.format(classify_loss, angle_loss, iou_loss))
 		
 		return geo_loss + classify_loss
